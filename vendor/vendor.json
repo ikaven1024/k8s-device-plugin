@@ -1,0 +1,19 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "7NP1qUMF8Kx1y0zANxx0e+oq9Oo=",
+			"path": "github.com/fsnotify/fsnotify",
+			"revision": "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9",
+			"revisionTime": "2018-01-10T05:33:47Z"
+		},
+		{
+			"checksumSHA1": "7L57WVVjGdY2gB/Durw+qZR7kV8=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "b126b21c05a91c856b027c16779c12e3bf236954",
+			"revisionTime": "2018-04-16T10:06:24Z"
+		}
+	],
+	"rootPath": "github.com/ikaven1024/device-plugin"
+}

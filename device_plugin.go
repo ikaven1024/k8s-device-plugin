@@ -16,7 +16,7 @@ import (
 type AllocateFunc func([]string) (*pluginapi.ContainerAllocateResponse, error)
 type PreStartFunc func([]string) error
 
-type GeneralDevicePlugin struct {
+type generalDevicePlugin struct {
 	lock sync.Mutex
 
 	resourceName string
@@ -33,8 +33,8 @@ type GeneralDevicePlugin struct {
 	allocateFunc AllocateFunc
 }
 
-func New(resourceName, socket string) *GeneralDevicePlugin {
-	return &GeneralDevicePlugin{
+func New(resourceName, socket string) DevicePlugin {
+	return &generalDevicePlugin{
 		resourceName: resourceName,
 		socket:       socket,
 		devs:         map[string]*pluginapi.Device{},
@@ -43,15 +43,15 @@ func New(resourceName, socket string) *GeneralDevicePlugin {
 	}
 }
 
-func (p *GeneralDevicePlugin) SetPreStartFunc(f PreStartFunc) {
+func (p *generalDevicePlugin) SetPreStartFunc(f PreStartFunc) {
 	p.preStartFunc = f
 }
 
-func (p *GeneralDevicePlugin) SetAllocateFunc(f AllocateFunc) {
+func (p *generalDevicePlugin) SetAllocateFunc(f AllocateFunc) {
 	p.allocateFunc = f
 }
 
-func (p *GeneralDevicePlugin) Start() error {
+func (p *generalDevicePlugin) Start() error {
 	err := p.startServer()
 	if err != nil {
 		return err
@@ -69,13 +69,13 @@ func (p *GeneralDevicePlugin) Start() error {
 	return nil
 }
 
-func (p *GeneralDevicePlugin) Stop() error {
+func (p *generalDevicePlugin) Stop() error {
 	p.server.Stop()
 	close(p.stop)
 	return p.cleanup()
 }
 
-func (p *GeneralDevicePlugin) AddOrUpdateDevice(devs ...*pluginapi.Device) {
+func (p *generalDevicePlugin) AddOrUpdateDevice(devs ...*pluginapi.Device) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -99,7 +99,7 @@ func (p *GeneralDevicePlugin) AddOrUpdateDevice(devs ...*pluginapi.Device) {
 	}
 }
 
-func (p *GeneralDevicePlugin) RemoveDevice(devs ...*pluginapi.Device) {
+func (p *generalDevicePlugin) RemoveDevice(devs ...*pluginapi.Device) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -117,7 +117,7 @@ func (p *GeneralDevicePlugin) RemoveDevice(devs ...*pluginapi.Device) {
 	}
 }
 
-func (p *GeneralDevicePlugin) ReplaceDevice(devs ...*pluginapi.Device) {
+func (p *generalDevicePlugin) ReplaceDevice(devs ...*pluginapi.Device) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -130,7 +130,7 @@ func (p *GeneralDevicePlugin) ReplaceDevice(devs ...*pluginapi.Device) {
 	p.update <- p.listDeviceLocked()
 }
 
-func (p *GeneralDevicePlugin) listDeviceLocked() []*pluginapi.Device {
+func (p *generalDevicePlugin) listDeviceLocked() []*pluginapi.Device {
 	devs := make([]*pluginapi.Device, len(p.devs))
 	for _, d := range p.devs {
 		devs = append(devs, d)
@@ -138,11 +138,11 @@ func (p *GeneralDevicePlugin) listDeviceLocked() []*pluginapi.Device {
 	return devs
 }
 
-func (p *GeneralDevicePlugin) GetDevicePluginOptions(context.Context, *pluginapi.Empty) (*pluginapi.DevicePluginOptions, error) {
+func (p *generalDevicePlugin) GetDevicePluginOptions(context.Context, *pluginapi.Empty) (*pluginapi.DevicePluginOptions, error) {
 	return &pluginapi.DevicePluginOptions{PreStartRequired: p.preStartRequired()}, nil
 }
 
-func (p *GeneralDevicePlugin) Allocate(_ context.Context, r *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
+func (p *generalDevicePlugin) Allocate(_ context.Context, r *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	resp := &pluginapi.AllocateResponse{}
 	if p.allocateFunc == nil {
 		return resp, nil
@@ -158,7 +158,7 @@ func (p *GeneralDevicePlugin) Allocate(_ context.Context, r *pluginapi.AllocateR
 	return resp, nil
 }
 
-func (p *GeneralDevicePlugin) ListAndWatch(_ *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
+func (p *generalDevicePlugin) ListAndWatch(_ *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
 	log.Println("ListAndWatch")
 	for {
 		select {
@@ -170,7 +170,7 @@ func (p *GeneralDevicePlugin) ListAndWatch(_ *pluginapi.Empty, s pluginapi.Devic
 	}
 }
 
-func (p *GeneralDevicePlugin) PreStartContainer(_ context.Context, r *pluginapi.PreStartContainerRequest) (*pluginapi.PreStartContainerResponse, error) {
+func (p *generalDevicePlugin) PreStartContainer(_ context.Context, r *pluginapi.PreStartContainerRequest) (*pluginapi.PreStartContainerResponse, error) {
 	resp := &pluginapi.PreStartContainerResponse{}
 	if p.preStartFunc == nil {
 		return resp, nil
@@ -180,7 +180,7 @@ func (p *GeneralDevicePlugin) PreStartContainer(_ context.Context, r *pluginapi.
 	return resp, err
 }
 
-func (p *GeneralDevicePlugin) startServer() error {
+func (p *generalDevicePlugin) startServer() error {
 	err := p.cleanup()
 	if err != nil {
 		return err
@@ -207,7 +207,7 @@ func (p *GeneralDevicePlugin) startServer() error {
 	return nil
 }
 
-func (p *GeneralDevicePlugin) register() error {
+func (p *generalDevicePlugin) register() error {
 	conn, err := dial(pluginapi.KubeletSocket)
 	if err != nil {
 		return err
@@ -226,7 +226,7 @@ func (p *GeneralDevicePlugin) register() error {
 	return err
 }
 
-func (p *GeneralDevicePlugin) preStartRequired() bool {
+func (p *generalDevicePlugin) preStartRequired() bool {
 	return p.preStartFunc != nil
 }
 
@@ -240,7 +240,7 @@ func dial(unixSocketPath string) (*grpc.ClientConn, error) {
 	)
 }
 
-func (p *GeneralDevicePlugin) cleanup() error {
+func (p *generalDevicePlugin) cleanup() error {
 	if err := os.Remove(p.socket); err != nil && !os.IsNotExist(err) {
 		return err
 	}
