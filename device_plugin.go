@@ -56,7 +56,6 @@ func (p *generalDevicePlugin) Start() error {
 	if err != nil {
 		return err
 	}
-	log.Println("Starting to serve on", p.socket)
 
 	err = p.register()
 	if err != nil {
@@ -65,12 +64,15 @@ func (p *generalDevicePlugin) Start() error {
 		return err
 	}
 
-	log.Println("Registered device plugin with Kubelet")
 	return nil
 }
 
 func (p *generalDevicePlugin) Stop() error {
+	if p.server == nil {
+		return nil
+	}
 	p.server.Stop()
+	p.server = nil
 	close(p.stop)
 	return p.cleanup()
 }
@@ -122,7 +124,7 @@ func (p *generalDevicePlugin) ReplaceDevice(devs ...*pluginapi.Device) {
 	defer p.lock.Unlock()
 
 	log.Println("Replace devices with", devs)
-	p.devs = nil
+	p.devs = map[string]*pluginapi.Device{}
 	for _, dev := range devs {
 		p.devs[dev.ID] = dev
 	}
@@ -131,7 +133,7 @@ func (p *generalDevicePlugin) ReplaceDevice(devs ...*pluginapi.Device) {
 }
 
 func (p *generalDevicePlugin) listDeviceLocked() []*pluginapi.Device {
-	devs := make([]*pluginapi.Device, len(p.devs))
+	devs := make([]*pluginapi.Device, 0, len(p.devs))
 	for _, d := range p.devs {
 		devs = append(devs, d)
 	}
@@ -165,7 +167,10 @@ func (p *generalDevicePlugin) ListAndWatch(_ *pluginapi.Empty, s pluginapi.Devic
 		case <- p.stop:
 			return nil
 		case updated := <- p.update:
-			s.Send(&pluginapi.ListAndWatchResponse{Devices: updated})
+			err := s.Send(&pluginapi.ListAndWatchResponse{Devices: updated})
+			if err != nil {
+				log.Panicln("ERROR", err)
+			}
 		}
 	}
 }
@@ -223,7 +228,11 @@ func (p *generalDevicePlugin) register() error {
 	}
 
 	_, err = client.Register(context.Background(), reqt)
-	return err
+	if err != nil {
+		return err
+	}
+	log.Println("Registered device plugin with Kubelet")
+	return nil
 }
 
 func (p *generalDevicePlugin) preStartRequired() bool {
