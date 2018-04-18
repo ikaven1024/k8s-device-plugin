@@ -1,28 +1,44 @@
 package main
 
 import (
-	"github.com/ikaven1024/device-plugin"
 	"log"
+	"os"
+	"path/filepath"
+
+	"deviceplugin"
 
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
-	"os"
 	"github.com/fsnotify/fsnotify"
-	"path/filepath"
 )
 
 func main() {
-	log.Println("Example")
-	p := deviceplugin.New("dir", pluginapi.DevicePluginPath + "dir.sock")
-	err := p.Start()
-	assert(err)
-	defer p.Stop()
+	update := make(chan []*pluginapi.Device)
+	go dirManager(update)
 
-	start(p)
+	log.Println("Example")
+	conf := deviceplugin.Config{
+		ResourceName: "example.com/dir",
+		SocketName:   "dir.sock",
+		Update:       update,
+
+		AllocateFunc: func(ids []string) (*pluginapi.ContainerAllocateResponse, error) {
+			resp := &pluginapi.ContainerAllocateResponse{}
+			for _, id := range ids {
+				resp.Mounts = append(resp.Mounts, &pluginapi.Mount{
+					ContainerPath: "/tmp/dir/" + id,
+					HostPath:  "/tmp/dir/" + id,
+				})
+			}
+			return resp, nil
+		},
+	}
+
+	deviceplugin.Run(conf)
 }
 
 const dirRoot = "/tmp/dir-devices"
 
-func start(plugin deviceplugin.DevicePlugin )  {
+func dirManager(update chan<- []*pluginapi.Device) {
 	err := os.MkdirAll(dirRoot, os.ModeDir)
 	assert(err)
 
@@ -31,15 +47,13 @@ func start(plugin deviceplugin.DevicePlugin )  {
 	defer w.Close()
 	w.Add(dirRoot)
 
-	plugin.ReplaceDevice(listDevice()...)
+	update <- listDevice()
+
 	for {
 		select {
 		case e := <-w.Events:
-			switch e.Op {
-			case fsnotify.Create:
-				plugin.AddOrUpdateDevice(&pluginapi.Device{filepath.Base(e.Name), pluginapi.Healthy})
-			case fsnotify.Remove:
-				plugin.RemoveDevice(&pluginapi.Device{filepath.Base(e.Name), pluginapi.Healthy})
+			if e.Op&fsnotify.Create > 0 || e.Op&fsnotify.Remove > 0 || e.Op&fsnotify.Rename > 0 {
+				update <- listDevice()
 			}
 		case err = <-w.Errors:
 			log.Println("Error", err)

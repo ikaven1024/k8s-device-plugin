@@ -16,16 +16,19 @@ import (
 type AllocateFunc func([]string) (*pluginapi.ContainerAllocateResponse, error)
 type PreStartFunc func([]string) error
 
+type DevicePlugin interface {
+	Start() error
+	Stop() error
+}
+
 type generalDevicePlugin struct {
 	lock sync.Mutex
 
 	resourceName string
 	socket string
 
-	devs   map[string]*pluginapi.Device
-
 	stop   chan struct{}
-	update chan []*pluginapi.Device
+	update <-chan []*pluginapi.Device
 
 	server *grpc.Server
 
@@ -33,22 +36,16 @@ type generalDevicePlugin struct {
 	allocateFunc AllocateFunc
 }
 
-func New(resourceName, socket string) DevicePlugin {
+func ForConfig(conf Config) DevicePlugin {
 	return &generalDevicePlugin{
-		resourceName: resourceName,
-		socket:       socket,
-		devs:         map[string]*pluginapi.Device{},
+		resourceName: conf.ResourceName,
+		socket:       pluginapi.DevicePluginPath + conf.SocketName,
+		update:       conf.Update,
+		preStartFunc: conf.PreStartFunc,
+		allocateFunc: conf.AllocateFunc,
+
 		stop:         make(chan struct{}),
-		update:       make(chan []*pluginapi.Device),
 	}
-}
-
-func (p *generalDevicePlugin) SetPreStartFunc(f PreStartFunc) {
-	p.preStartFunc = f
-}
-
-func (p *generalDevicePlugin) SetAllocateFunc(f AllocateFunc) {
-	p.allocateFunc = f
 }
 
 func (p *generalDevicePlugin) Start() error {
@@ -75,69 +72,6 @@ func (p *generalDevicePlugin) Stop() error {
 	p.server = nil
 	close(p.stop)
 	return p.cleanup()
-}
-
-func (p *generalDevicePlugin) AddOrUpdateDevice(devs ...*pluginapi.Device) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	updated := false
-	for _, dev := range devs {
-		if d, has := p.devs[dev.ID]; !has {
-			log.Println("Add device", dev)
-			p.devs[dev.ID] = dev
-			updated = true
-		} else {
-			if d.Health != dev.Health {
-				log.Println("Update device", dev)
-				d.Health = dev.Health
-				updated = true
-			}
-		}
-	}
-
-	if updated {
-		p.update <- p.listDeviceLocked()
-	}
-}
-
-func (p *generalDevicePlugin) RemoveDevice(devs ...*pluginapi.Device) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	updated := false
-	for _, dev := range devs {
-		if _, has := p.devs[dev.ID]; has {
-			log.Println("Delete device", dev.ID)
-			delete(p.devs, dev.ID)
-			updated = true
-		}
-	}
-
-	if updated {
-		p.update <- p.listDeviceLocked()
-	}
-}
-
-func (p *generalDevicePlugin) ReplaceDevice(devs ...*pluginapi.Device) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	log.Println("Replace devices with", devs)
-	p.devs = map[string]*pluginapi.Device{}
-	for _, dev := range devs {
-		p.devs[dev.ID] = dev
-	}
-
-	p.update <- p.listDeviceLocked()
-}
-
-func (p *generalDevicePlugin) listDeviceLocked() []*pluginapi.Device {
-	devs := make([]*pluginapi.Device, 0, len(p.devs))
-	for _, d := range p.devs {
-		devs = append(devs, d)
-	}
-	return devs
 }
 
 func (p *generalDevicePlugin) GetDevicePluginOptions(context.Context, *pluginapi.Empty) (*pluginapi.DevicePluginOptions, error) {
@@ -167,6 +101,7 @@ func (p *generalDevicePlugin) ListAndWatch(_ *pluginapi.Empty, s pluginapi.Devic
 		case <- p.stop:
 			return nil
 		case updated := <- p.update:
+			log.Println("Update: ", updated)
 			err := s.Send(&pluginapi.ListAndWatchResponse{Devices: updated})
 			if err != nil {
 				log.Panicln("ERROR", err)
