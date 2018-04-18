@@ -1,13 +1,13 @@
 package deviceplugin
 
 import (
-	"net"
-	"time"
-	"log"
 	"context"
-	"path"
+	"log"
+	"net"
 	"os"
+	"path"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
@@ -25,7 +25,7 @@ type generalDevicePlugin struct {
 	lock sync.Mutex
 
 	resourceName string
-	socket string
+	socket       string
 
 	stop   chan struct{}
 	update <-chan []*pluginapi.Device
@@ -44,7 +44,7 @@ func ForConfig(conf Config) DevicePlugin {
 		preStartFunc: conf.PreStartFunc,
 		allocateFunc: conf.AllocateFunc,
 
-		stop:         make(chan struct{}),
+		stop: make(chan struct{}),
 	}
 }
 
@@ -98,9 +98,9 @@ func (p *generalDevicePlugin) ListAndWatch(_ *pluginapi.Empty, s pluginapi.Devic
 	log.Println("ListAndWatch")
 	for {
 		select {
-		case <- p.stop:
+		case <-p.stop:
 			return nil
-		case updated := <- p.update:
+		case updated := <-p.update:
 			log.Println("Update: ", updated)
 			err := s.Send(&pluginapi.ListAndWatchResponse{Devices: updated})
 			if err != nil {

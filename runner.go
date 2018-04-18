@@ -1,13 +1,17 @@
 package deviceplugin
 
 import (
+	"fmt"
 	"log"
-	
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+
 	"github.com/fsnotify/fsnotify"
+	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 )
 
-func Run(config Config) error {
+// Run keeps device plugin running, recover from error.
+// sigCh receive signal to controller perform of plugin,
+// True to restart, and False to exit.
+func Run(config Config, sigCh <-chan bool) error {
 	if err := config.Validate(); err != nil {
 		return err
 	}
@@ -19,30 +23,37 @@ func Run(config Config) error {
 	defer watcher.Close()
 
 	for {
-		if err := runOnce(config, watcher); err != nil {
+		if restart, err := runOnce(config, watcher, sigCh); err != nil {
 			return err
+		} else if !restart {
+			return nil
 		}
 	}
 }
 
-func runOnce(config Config, watcher *fsnotify.Watcher) error {
+func runOnce(config Config, watcher *fsnotify.Watcher, sigCh <-chan bool) (bool, error) {
 	plugin := ForConfig(config)
 	if err := plugin.Start(); err != nil {
-		log.Println(err)
-		return nil
+		return false, fmt.Errorf("fail to start plugin: %v", err)
 	}
-
 
 	for {
 		select {
-		case event := <- watcher.Events:
-			if event.Op & fsnotify.Create == fsnotify.Create {
+		case event := <-watcher.Events:
+			if event.Op&fsnotify.Create == fsnotify.Create {
 				log.Println("Kubelet is restarted. Restart device plugin.")
-				return nil
+				return true, nil
 			}
-		case err := <- watcher.Errors:
+		case err := <-watcher.Errors:
 			log.Println(err)
+		case sig := <-sigCh:
+			if sig {
+				log.Printf("Stoped by signal, will restart")
+				return true, nil
+			} else {
+				log.Printf("Exit by signal")
+				return false, nil
+			}
 		}
-
 	}
 }

@@ -41,13 +41,13 @@ func main() {
 		SocketName:   "your-device.sock",
 		Update:       update,
 	}
-	deviceplugin.Run(conf)
+	deviceplugin.Run(conf, nil)
 }
 ```
 
 **Implement your device manager**
 
-`yourDeviceManager` is an implement of your device manager. It accept an go chan, and send all devices to it when devices is changed (added, deleted, or health change).
+`yourDeviceManager` is an implement of your device manager. It accept an go chan, and send all devices to it when devices is changed (added, deleted, or health change). It shall send all of the devices at beginning of manager running.
 
 ## Config
 

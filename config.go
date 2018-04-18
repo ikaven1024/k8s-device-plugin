@@ -3,9 +3,9 @@ package deviceplugin
 import (
 	"fmt"
 
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 	"k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/apis/core/v1/helper"
+	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 )
 
 type Config struct {

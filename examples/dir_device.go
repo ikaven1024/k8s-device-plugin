@@ -2,7 +2,7 @@ package main
 
 /**
   Directories under `/tmp/dir-devices` is regarded as a kind of device, allocating to container.
- */
+*/
 
 import (
 	"log"
@@ -11,8 +11,8 @@ import (
 
 	"deviceplugin"
 
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 	"github.com/fsnotify/fsnotify"
+	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 )
 
 func main() {
@@ -30,14 +30,14 @@ func main() {
 			for _, id := range ids {
 				resp.Mounts = append(resp.Mounts, &pluginapi.Mount{
 					ContainerPath: "/tmp/dir/" + id,
-					HostPath:  "/tmp/dir/" + id,
+					HostPath:      "/tmp/dir/" + id,
 				})
 			}
 			return resp, nil
 		},
 	}
 
-	deviceplugin.Run(conf)
+	deviceplugin.Run(conf, nil)
 }
 
 const dirRoot = "/tmp/dir-devices"
