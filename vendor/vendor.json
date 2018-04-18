@@ -1,19 +1,62 @@
 {
 	"comment": "",
-	"ignore": "test",
+	"ignore": "",
 	"package": [
 		{
-			"checksumSHA1": "7NP1qUMF8Kx1y0zANxx0e+oq9Oo=",
-			"path": "github.com/fsnotify/fsnotify",
-			"revision": "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9",
-			"revisionTime": "2018-01-10T05:33:47Z"
+			"checksumSHA1": "DsRkUDc7po9EGmxsPBBiiJb7Wj4=",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": ""
 		},
 		{
-			"checksumSHA1": "7L57WVVjGdY2gB/Durw+qZR7kV8=",
-			"path": "golang.org/x/sys/unix",
-			"revision": "b126b21c05a91c856b027c16779c12e3bf236954",
-			"revisionTime": "2018-04-16T10:06:24Z"
+			"checksumSHA1": "uGY5J09yOuqnZDaYkqZB9mL0wTU=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "7U+Piga/XpB8zRtXX8/pMA7YMrs=",
+			"path": "github.com/stretchr/testify/require",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "vQwLWS3zFC4+mX9w8U6EuV5Bvps=",
+			"path": "k8s.io/apimachinery/pkg/api/testing",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "xls+Ek2t6fDFP92AEGUn6R/oEAA=",
+			"path": "k8s.io/apimachinery/pkg/api/testing/fuzzer",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "EIiLDY27cOrvqxeD7Vw0aCDfu4o=",
+			"path": "k8s.io/apimachinery/pkg/api/testing/roundtrip",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "RmOmtbuLX9RQatHPzAy9UPe3KZY=",
+			"path": "k8s.io/apimachinery/pkg/apimachinery",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "AwtPEHbtDL1lLEb56VTxMbtSWZM=",
+			"path": "k8s.io/apimachinery/pkg/apimachinery/announced",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "dzM1woUmjhi82086b/Sq9rUmEkQ=",
+			"path": "k8s.io/apimachinery/pkg/apimachinery/registered",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "B9uUJnKxJFe8E6Mi+SNgQ+lXrhA=",
+			"path": "k8s.io/apimachinery/pkg/apis/meta/fuzzer",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "wZZQDKywQBAI1KxvswAlJ6f251g=",
+			"path": "k8s.io/apimachinery/pkg/apis/meta/internalversion",
+			"revision": ""
 		}
 	],
-	"rootPath": "github.com/ikaven1024/device-plugin"
+	"rootPath": "deviceplugin"
 }
