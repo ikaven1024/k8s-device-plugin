@@ -1,5 +1,9 @@
 package main
 
+/**
+  Directories under `/tmp/dir-devices` is regarded as a kind of device, allocating to container.
+ */
+
 import (
 	"log"
 	"os"
